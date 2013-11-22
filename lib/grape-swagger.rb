@@ -138,6 +138,11 @@ module Grape
                   required = value.is_a?(Hash) ? !!value[:required] : false
                   paramType = path.include?(":#{param}") ? 'path' : (method == 'POST') ? 'form' : 'query'
                   name = (value.is_a?(Hash) && value[:full_name]) || param
+                  
+                  if path.include?("/:#{param}/")
+                    required = true
+                  end
+
                   {
                     paramType: paramType,
                     name: name,
