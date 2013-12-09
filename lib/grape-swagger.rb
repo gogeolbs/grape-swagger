@@ -25,6 +25,37 @@ module Grape
           end
         end
 
+        array = options[:split_in]
+
+        if @combined_routes && array
+          new_map = Hash.new
+          array.each do |group|
+            @combined_routes.each do |key, route|
+              if key == "api-docs"
+                next
+              end
+
+              new_key = group.gsub("/", "")
+
+              aux = route.select do |item|
+                path = item.to_param.to_s.split("path=")[1]
+                path.match(group)
+              end
+
+              route.delete_if do |item|
+                aux.include?(item)
+              end
+
+              new_map[new_key] = aux
+            end
+          end
+          keys = new_map.keys.reverse
+          values = new_map.values.reverse
+
+          keys.each_with_index do |key, index|
+            @combined_routes[key] = values[index]
+          end
+        end
       end
 
       private
@@ -91,28 +122,33 @@ module Grape
             get "#{@@mount_path}/:name" do
               header['Access-Control-Allow-Origin'] = '*'
               header['Access-Control-Request-Method'] = '*'
+
               models = []
               routes = target_class::combined_routes[params[:name]]
-              routes_array = routes.map {|route|
-                next if route.route_hidden
-                notes = route.route_notes && @@markdown ? Kramdown::Document.new(strip_heredoc(route.route_notes)).to_html : route.route_notes
-                http_codes = parse_http_codes route.route_http_codes
-                models << route.route_entity if route.route_entity
-                operations = {
-                    :notes => notes,
-                    :summary => route.route_description || '',
-                    :nickname   => route.route_method + route.route_path.gsub(/[\/:\(\)\.]/,'-'),
-                    :httpMethod => route.route_method,
-                    :parameters => parse_header_params(route.route_headers) +
-                      parse_params(route.route_params, route.route_path, route.route_method)
-                }
-                operations.merge!({:responseClass => route.route_entity.to_s.split('::')[-1]}) if route.route_entity
-                operations.merge!({:errorResponses => http_codes}) unless http_codes.empty?
-                {
-                  :path => parse_path(route.route_path, api_version),
-                  :operations => [operations]
-                }
-              }.compact
+              if routes
+                routes_array = routes.map {|route|
+                  next if route.route_hidden
+                  notes = route.route_notes && @@markdown ? Kramdown::Document.new(strip_heredoc(route.route_notes)).to_html : route.route_notes
+                  http_codes = parse_http_codes route.route_http_codes
+                  models << route.route_entity if route.route_entity
+                  operations = {
+                      :notes => notes,
+                      :summary => route.route_description || '',
+                      :nickname   => route.route_method + route.route_path.gsub(/[\/:\(\)\.]/,'-'),
+                      :httpMethod => route.route_method,
+                      :parameters => parse_header_params(route.route_headers) +
+                        parse_params(route.route_params, route.route_path, route.route_method)
+                  }
+                  operations.merge!({:responseClass => route.route_entity.to_s.split('::')[-1]}) if route.route_entity
+                  operations.merge!({:errorResponses => http_codes}) unless http_codes.empty?
+                  {
+                    :path => parse_path(route.route_path, api_version),
+                    :operations => [operations]
+                  }
+                }.compact
+              else
+                routes_array = []
+              end
 
               api_description = {
                 apiVersion: api_version,
