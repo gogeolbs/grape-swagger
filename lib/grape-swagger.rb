@@ -25,40 +25,45 @@ module Grape
           end
         end
 
-        array = options[:split_in]
+        split_in_array = options[:split_in]
 
-        if @combined_routes && array
-          new_map = Hash.new
-          array.each do |group|
-            @combined_routes.each do |key, route|
-              if key == "api-docs"
-                next
-              end
-
-              new_key = group.gsub("/", "")
-
-              aux = route.select do |item|
-                path = item.to_param.to_s.split("path=")[1]
-                path.match(group)
-              end
-
-              route.delete_if do |item|
-                aux.include?(item)
-              end
-
-              new_map[new_key] = aux
-            end
-          end
-          keys = new_map.keys.reverse
-          values = new_map.values.reverse
-
-          keys.each_with_index do |key, index|
-            @combined_routes[key] = values[index]
-          end
+        if @combined_routes && split_in_array
+          split_routes(@combined_routes, split_in_array)
         end
+
       end
 
       private
+
+      def split_routes(combined_routes, array)
+        new_map = Hash.new
+        array.each do |group|
+          combined_routes.each do |key, route|
+            if key == "api-docs"
+              next
+            end
+
+            new_key = group.gsub("/", "")
+
+            aux = route.select do |item|
+              path = item.to_param.to_s.split("path=")[1]
+              path.match(group)
+            end
+
+            route.delete_if do |item|
+              aux.include?(item)
+            end
+
+            new_map[new_key] = aux
+          end
+        end
+        keys = new_map.keys.reverse
+        values = new_map.values.reverse
+
+        keys.each_with_index do |key, index|
+          combined_routes[key] = values[index]
+        end
+      end
 
       def create_documentation_class
 
