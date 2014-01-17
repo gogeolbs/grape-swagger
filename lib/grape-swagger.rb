@@ -47,14 +47,22 @@ module Grape
 
             aux = route.select do |item|
               path = item.to_param.to_s.split("path=")[1]
-              path.match(group)
+              matched = path.match(group)
+
+              matched
             end
 
             route.delete_if do |item|
-              aux.include?(item)
+              included = aux.include?(item)
+
+              included
             end
 
-            new_map[new_key] = aux
+            if (!new_map[new_key])
+              new_map[new_key] = aux
+            else
+              new_map[new_key] = new_map[new_key].concat(aux)
+            end
           end
         end
         keys = new_map.keys.reverse
@@ -177,7 +185,7 @@ module Grape
                   dataType = value.is_a?(Hash) ? (value[:type] || 'String').to_s : 'String'
                   description = value.is_a?(Hash) ? value[:desc] || value[:description] : ''
                   required = value.is_a?(Hash) ? !!value[:required] : false
-                  paramType = path.include?(":#{param}") ? 'path' : (method == 'POST' || method == 'PUT') ? 'form' : 'query'
+                  paramType = path.include?(":#{param}") ? 'path' : (method == 'POST' || method == 'PUT') ? 'body' : 'query'
                   name = (value.is_a?(Hash) && value[:full_name]) || param
                   
                   if path.include?("/:#{param}/")
