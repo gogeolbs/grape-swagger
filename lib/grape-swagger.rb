@@ -206,12 +206,14 @@ module Grape
                 route[:description] = desc
               end
 
-              routes_array.sort! { | a, b |
-                pathA = get_reduce_path(a, options)
-                pathB = get_reduce_path(b, options)
+              if options[:to_sort]
+                routes_array.sort! { | a, b |
+                  pathA = get_reduce_path(a, options)
+                  pathB = get_reduce_path(b, options)
 
-                pathA <=> pathB
-              }
+                  pathA <=> pathB
+                }
+              end
 
             end
 
