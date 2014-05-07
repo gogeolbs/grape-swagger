@@ -128,7 +128,7 @@ module Grape
               }.compact
 
               if options[:split_in]
-                configure_descriptions(routes_array, options)
+                configure_route_descriptions(routes_array, options)
               end
 
               {
@@ -190,15 +190,12 @@ module Grape
 
           helpers do
 
-            def configure_descriptions(routes_array, options)
+            def configure_route_descriptions(routes_array, options)
               split_in = options[:split_in]
 
-
               routes_array.each do | route |
-                path = route[:path]
-                path = path.to_s.gsub(options[:mount_path], "")
-                path = path.to_s.gsub("/", "")
-                
+                path = get_reduce_path(route, options)
+
                 if split_in.is_a?(Array)
                   index = split_in.find_index(path.to_sym)
                   desc = index ? split_in[index] : path.capitalize
@@ -206,9 +203,23 @@ module Grape
                   desc = split_in[path.to_sym] || path.capitalize
                 end
 
-
                 route[:description] = desc
               end
+
+              routes_array.sort! { | a, b |
+                pathA = get_reduce_path(a, options)
+                pathB = get_reduce_path(b, options)
+
+                pathA <=> pathB
+              }
+
+            end
+
+            def get_reduce_path(route, options)
+              path = route[:path]
+              path = path.to_s.gsub(options[:mount_path], "")
+              path = path.to_s.gsub("/", "")
+              path
             end
 
             def parse_params(params, path, method)
