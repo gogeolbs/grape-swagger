@@ -25,29 +25,37 @@ module Grape
           end
         end
 
-        split_in_array = options[:split_in]
+        split_in = options[:split_in]
 
-        if @combined_routes && split_in_array
-          split_routes(@combined_routes, split_in_array)
+        if @combined_routes && !@combined_routes.empty? && split_in
+          split_routes(@combined_routes, split_in)
         end
 
       end
 
       private
 
-      def split_routes(combined_routes, array)
+      def split_routes(combined_routes, split_in)
+        if !split_in.is_a?(Array) && !split_in.is_a?(Hash)
+          puts "The param split_in is not valid. Must be an Array or Hash"
+          return
+        end
+
         new_map = Hash.new
-        array.each do |group|
+        split_in.each do |title, group|
+
+          title = title.to_s
+
           combined_routes.each do |key, route|
             if key == "api-docs"
               next
             end
 
-            new_key = group.gsub("/", "")
+            new_key = title.gsub("/", "")
 
             aux = route.select do |item|
               path = item.to_param.to_s.split("path=")[1]
-              matched = path.match(group)
+              matched = path.match(title)
 
               matched
             end
@@ -71,7 +79,7 @@ module Grape
         keys.each_with_index do |key, index|
           combined_routes[key] = values[index]
         end
-      end
+      end # end split_in
 
       def create_documentation_class
 
@@ -118,6 +126,10 @@ module Grape
                 next if routes[local_route].all? { |route| route.route_hidden }
                 { :path => "#{parse_path(route.route_path.gsub('(.:format)', ''),route.route_version)}/#{local_route}#{@@hide_format ? '' : '.{format}'}" }
               }.compact
+
+              if options[:split_in]
+                configure_descriptions(routes_array, options)
+              end
 
               {
                 apiVersion: api_version,
@@ -177,6 +189,28 @@ module Grape
 
 
           helpers do
+
+            def configure_descriptions(routes_array, options)
+              split_in = options[:split_in]
+
+
+              routes_array.each do | route |
+                path = route[:path]
+                path = path.to_s.gsub(options[:mount_path], "")
+                path = path.to_s.gsub("/", "")
+                
+                if split_in.is_a?(Array)
+                  index = split_in.find_index(path.to_sym)
+                  desc = index ? split_in[index] : path.capitalize
+                else
+                  desc = split_in[path.to_sym] || path.capitalize
+                end
+
+
+                route[:description] = desc
+              end
+            end
+
             def parse_params(params, path, method)
               if params
                 params.map do |param, value|
@@ -204,7 +238,6 @@ module Grape
                 []
               end
             end
-
 
             def parse_header_params(params)
               if params

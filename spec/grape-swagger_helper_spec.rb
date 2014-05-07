@@ -40,8 +40,8 @@ describe "helpers" do
       path = "/coolness"
       method = "POST"
       @api.parse_params(params, path, method).should == [
-        { paramType: "form", name: :name, description: "A name", dataType: "String", required: true },
-        { paramType: "form", name: :level, description: "", dataType: "String", required: false }
+        { paramType: "body", name: :name, description: "A name", dataType: "String", required: true },
+        { paramType: "body", name: :level, description: "", dataType: "String", required: false }
       ]
     end
 
